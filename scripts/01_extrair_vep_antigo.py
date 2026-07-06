@@ -1,32 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-ExomaExplorer V2
-ETAPA 1 - Extração das anotações VEP
-"""
-
 import gzip
-from pathlib import Path
-
 import pandas as pd
 from cyvcf2 import VCF
-
-# =====================================================
-# CAMINHOS
-# =====================================================
-
-BASE = Path(__file__).resolve().parent.parent
-
-INPUT = BASE / "input"
-OUTPUT = BASE / "output"
-
-VCF_FILE = INPUT / "exoma.vcf.gz"
-SAIDA = OUTPUT / "01_Variantes_VEP.xlsx"
-
-# =====================================================
-# INÍCIO
-# =====================================================
 
 print("=" * 70)
 print("EXOMA EXPLORER V2")
@@ -34,41 +11,33 @@ print("ETAPA 1 - EXTRAÇÃO VEP")
 print("=" * 70)
 print()
 
-if not VCF_FILE.exists():
-    raise FileNotFoundError(f"VCF não encontrado:\n{VCF_FILE}")
+VCF_ARQUIVO = "../input/exoma.vcf.gz"
+SAIDA = "../output/01_Variantes_VEP.xlsx"
 
 print("Abrindo VCF...")
+vcf = VCF(VCF_ARQUIVO)
 
-vcf = VCF(str(VCF_FILE))
+# Localiza automaticamente o cabeçalho do campo CSQ
+csq_header = None
 
-# =====================================================
-# LOCALIZA CABEÇALHO CSQ
-# =====================================================
+for linha in vcf.raw_header.split("\n"):
+    if linha.startswith("##INFO=<ID=CSQ"):
+        csq_header = linha
+        break
 
-cabecalho = None
-
-with gzip.open(VCF_FILE, "rt") as f:
-    for linha in f:
-        if linha.startswith("##INFO=<ID=CSQ"):
-            cabecalho = linha.strip()
-            break
-
-if cabecalho is None:
+if csq_header is None:
     raise Exception("Campo CSQ não encontrado no VCF.")
 
-descricao = cabecalho.split("Format: ")[1].split('">')[0]
+descricao = csq_header.split("Format: ")[1].split('">')[0]
 campos = descricao.split("|")
 
 print(f"Campos VEP encontrados: {len(campos)}")
 print()
 
+# Lista que armazenará todas as variantes
 linhas = []
 
 print("Extraindo variantes...")
-print()
-# =====================================================
-# PERCORRE TODAS AS VARIANTES
-# =====================================================
 
 for variante in vcf:
 
@@ -88,6 +57,8 @@ for variante in vcf:
     if filtro is None:
         filtro = "PASS"
 
+    csq = variante.INFO.get("CSQ")
+
     for anotacao in csq.split(","):
 
         valores = anotacao.split("|")
@@ -96,7 +67,8 @@ for variante in vcf:
             valores.append("")
 
         registro = dict(zip(campos, valores))
-
+        print(registro.get("SYMBOL"), registro.get("HGVSp"))
+        break
         linhas.append({
             "CHROM": chrom,
             "POS": pos,
@@ -118,20 +90,15 @@ for variante in vcf:
             "CLIN_SIG": registro.get("CLIN_SIG", ""),
             "PUBMED": registro.get("PUBMED", ""),
 
-            "GNOMAD_AF": (
-                registro.get("gnomADg_AF", "")
-                or registro.get("gnomADe_AF", "")
-            ),
+            "GNOMAD_AF": registro.get("gnomADg_AF", "") or registro.get("gnomADe_AF", "")
         })
-# =====================================================
-# GERA PLANILHA
-# =====================================================
 
+print()
 print(f"Total de registros extraídos: {len(linhas)}")
 
 df = pd.DataFrame(linhas)
 
-OUTPUT.mkdir(exist_ok=True)
+print("Salvando planilha...")
 
 df.to_excel(
     SAIDA,
@@ -141,7 +108,8 @@ df.to_excel(
 
 print()
 print("=" * 70)
-print("EXTRAÇÃO CONCLUÍDA")
+print("EXTRAÇÃO CONCLUÍDA COM SUCESSO")
 print("=" * 70)
-print(f"Arquivo: {SAIDA}")
-print(f"Registros: {len(df)}")
+print(f"Arquivo gerado: {SAIDA}")
+print(f"Total de linhas: {len(df)}")
+
