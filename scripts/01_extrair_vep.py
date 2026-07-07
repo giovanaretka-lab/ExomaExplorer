@@ -96,8 +96,20 @@ for variante in vcf:
             valores.append("")
 
         registro = dict(zip(campos, valores))
-
-        linhas.append({
+if registro.get("SYMBOL") == "NOD2":
+    print("\n==============================")
+    print("GENE:", registro.get("SYMBOL"))
+    print("HGVSc:", registro.get("HGVSc"))
+    print("HGVSp:", registro.get("HGVSp"))
+    print("Protein_position:", registro.get("Protein_position"))
+    print("Amino_acids:", registro.get("Amino_acids"))
+    print("Codons:", registro.get("Codons"))
+    print("Existing_variation:", registro.get("Existing_variation"))
+    print("SIFT:", registro.get("SIFT"))
+    print("PolyPhen:", registro.get("PolyPhen"))
+    print("==============================")
+    break
+linhas.append({
             "CHROM": chrom,
             "POS": pos,
             "REF": ref,
