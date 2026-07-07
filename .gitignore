@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+
+# Ambiente
+.venv/
+env/
+
+# Arquivos gerados
+output/
+logs/
+
+# Arquivos temporários
+*.tmp
+*.bak
+
+# Sistema
+.DS_Store
+Thumbs.db
